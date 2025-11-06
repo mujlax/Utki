@@ -4,6 +4,11 @@
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     }
-  ]
+  ],
+  "version": 2,
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
-
