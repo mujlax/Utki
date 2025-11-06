@@ -52,7 +52,7 @@ const jsonRecordFromString = <T>(schema: z.ZodSchema<T>) =>
     } catch (error) {
       throw new Error(`Cannot parse JSON from value "${value}": ${error}`)
     }
-  })
+  }) as z.ZodType<T>
 
 export const userSchema = z.object({
   userId: z.string(),

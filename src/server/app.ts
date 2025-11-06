@@ -1,9 +1,9 @@
 import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
-import { sheetsClient } from '../lib/sheets'
-import { env } from './config/env'
-import { purchasePrize, spinWheel } from '../lib/economy'
-import type { Prize, WheelSetting } from '../lib/types'
+import { sheetsClient } from '../lib/sheets.js'
+import { env } from './config/env.js'
+import { purchasePrize, spinWheel } from '../lib/economy.js'
+import type { Prize, WheelSetting, User, SpinLogEntry } from '../lib/types.js'
 
 type AsyncHandler = (
   req: Request,
@@ -104,7 +104,7 @@ export const createApp = () => {
         sheetsClient.listSpinLogs(),
       ])
 
-      const overview = users.map((user) => {
+      const overview = users.map((user: User) => {
         const winsMap = new Map<
           string,
           {
@@ -117,8 +117,8 @@ export const createApp = () => {
         >()
 
         logs
-          .filter((log) => log.userId === user.userId && log.prizeName)
-          .forEach((log) => {
+          .filter((log: SpinLogEntry) => log.userId === user.userId && log.prizeName)
+          .forEach((log: SpinLogEntry) => {
             const key = log.prizeId ?? `${log.prizeName}:${log.rarity}`
             const existing = winsMap.get(key)
             if (existing) {
@@ -137,7 +137,7 @@ export const createApp = () => {
             }
           })
 
-        const wins = Array.from(winsMap.values()).sort((a, b) => {
+        const wins = Array.from(winsMap.values()).sort((a: { count: number; lastWonAt: string }, b: { count: number; lastWonAt: string }) => {
           if (b.count === a.count) {
             return new Date(b.lastWonAt).getTime() - new Date(a.lastWonAt).getTime()
           }
@@ -219,7 +219,7 @@ export const createApp = () => {
       let updatedPrize = result.prize
       if (result.prize?.removeAfterWin && !result.prize.removedFromWheel) {
         const prizeToUpdate = prizes.find(
-          (item) => item.prizeId === result.prize?.prizeId,
+          (item: Prize) => item.prizeId === result.prize?.prizeId,
         )
         if (prizeToUpdate) {
           const savedPrize: Prize = {
@@ -252,7 +252,7 @@ export const createApp = () => {
         return
       }
       const prizes = await sheetsClient.listPrizes()
-      const prize = prizes.find((item) => item.prizeId === body.prizeId)
+      const prize = prizes.find((item: Prize) => item.prizeId === body.prizeId)
       if (!prize) {
         res.status(404).json({ error: 'PRIZE_NOT_FOUND' })
         return

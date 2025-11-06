@@ -1,6 +1,6 @@
 import { createServer } from 'http'
-import { createApp } from './app'
-import { env } from './config/env'
+import { createApp } from './app.js'
+import { env } from './config/env.js'
 
 const port = Number(process.env.PORT ?? process.env.VERCEL_PORT ?? 4000)
 const app = createApp()
