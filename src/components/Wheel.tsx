@@ -76,7 +76,9 @@ export const Wheel = ({
     }
 
     return active.map(({ prize }) => ({
-      label: prize.name,
+      label: prize.removeAfterWin && !prize.removedFromWheel 
+        ? `${prize.name} (x1)`
+        : prize.name,
       color: rarityAccent[prize.rarity],
       prize,
     }))
@@ -190,21 +192,21 @@ export const Wheel = ({
   })()
 
   return (
-    <Card variant="outlined" sx={{ width: '100%', maxWidth: 700, mx: 'auto' }}>
-      <CardContent>
-        <Stack spacing={3} alignItems="center" sx={{ width: '100%' }}>
-          <Typography variant="h6" alignSelf="flex-start">
+    <Card variant="outlined" sx={{ width: '100%', maxWidth: 500, mx: 'auto' }}>
+      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        <Stack spacing={1} alignItems="center" sx={{ width: '100%' }}>
+          <Typography variant="h6" alignSelf="flex-start" sx={{ mb: 0, px: 2, pt: 2 }}>
             Колесо удачи
           </Typography>
           <Box
             sx={{
               position: 'relative',
               width: '100%',
-              maxWidth: 700,
               aspectRatio: '1',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              px: 0,
             }}
           >
             <Box
@@ -215,6 +217,10 @@ export const Wheel = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                '& svg text': {
+                  transform: 'rotate(90deg)',
+                  transformOrigin: 'center',
+                },
               }}
             >
               {wheelData.length > 0 ? (
@@ -230,7 +236,6 @@ export const Wheel = ({
                   innerBorderWidth={8}
                   radiusLineColor="#1a1a1a"
                   radiusLineWidth={2}
-                  perpendicularText
                   textDistance={60}
                   disableInitialAnimation
                   pointerProps={{
@@ -299,7 +304,7 @@ export const Wheel = ({
               )}
             </Box>
           </Box>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 0, px: 2, pb: 2 }}>
             Колесо собирается из активных призов Google Sheets и анимируется при каждой крутке.
           </Typography>
         </Stack>

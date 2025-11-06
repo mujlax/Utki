@@ -16,6 +16,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import { apiClient } from '../api/client'
+import { ThemeToggle } from '../components/ThemeToggle'
 import type { UserOverview, Rarity } from '../lib/types'
 
 const rarityAccent: Record<Rarity, string> = {
@@ -67,9 +68,12 @@ const HomePage = () => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Колесо уточечной удачи
           </Typography>
-          <Button component={RouterLink} to="/wheel" color="inherit" variant="outlined">
-            Перейти к колесу
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <ThemeToggle />
+            <Button component={RouterLink} to="/wheel" color="inherit" variant="outlined">
+              Перейти к колесу
+            </Button>
+          </Stack>
         </Toolbar>
       </AppBar>
       <Container sx={{ py: 4 }}>

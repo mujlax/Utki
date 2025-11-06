@@ -7,6 +7,7 @@ import {
   Typography,
   Button,
 } from '@mui/material'
+import InfoIcon from '@mui/icons-material/Info'
 import type { Prize, Rarity } from '../lib/types'
 
 const rarityLabel: Record<Rarity, string> = {
@@ -63,6 +64,16 @@ export const PrizeCard = ({ prize, onBuy, disabled }: PrizeCardProps) => {
           <Typography variant="body2" color="text.secondary">
             {prize.description}
           </Typography>
+          {prize.removeAfterWin && !isRemoved && (
+            <Chip
+              icon={<InfoIcon sx={{ fontSize: 16 }} />}
+              label="Можно выиграть только 1 раз"
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ alignSelf: 'flex-start' }}
+            />
+          )}
           <Typography variant="body2" color={statusColor}>
             {statusLabel}
           </Typography>

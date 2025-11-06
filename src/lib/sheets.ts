@@ -42,7 +42,6 @@ const SHEET_COLUMNS = {
     'rarityUpgrades',
     'pityStep',
     'pityMax',
-    'weightsOverrides',
     'seriesBonusEvery',
     'seriesBonusType',
   ],
@@ -124,7 +123,6 @@ const serializeWheelSetting = (setting: WheelSetting) => [
   JSON.stringify(setting.rarityUpgrades),
   setting.pityStep.toString(),
   setting.pityMax.toString(),
-  JSON.stringify(setting.weightsOverrides ?? {}),
   setting.seriesBonusEvery.toString(),
   setting.seriesBonusType ?? '',
 ]

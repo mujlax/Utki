@@ -59,23 +59,17 @@ const applyRarityUpgrade = (
 
 const computePrizeWeight = ({
   effectiveRarity,
-  level,
   luckModifier,
 }: {
   effectiveRarity: Rarity
-  level: WheelSetting
   luckModifier: number
 }) => {
   const baseWeight = RARITY_BASE_WEIGHTS[effectiveRarity] ?? 0
-  const override =
-    level.weightsOverrides && level.weightsOverrides[effectiveRarity]
-      ? level.weightsOverrides[effectiveRarity]!
-      : 1
   const luckMultiplier =
     effectiveRarity === 1
       ? Math.max(0.1, 1 - luckModifier)
       : 1 + luckModifier
-  return baseWeight * override * luckMultiplier
+  return baseWeight * luckMultiplier
 }
 
 const buildPrizePool = (
@@ -161,7 +155,6 @@ export const spinWheel = (context: SpinContext): SpinOutcome => {
     (item: { prize: Prize; rarity: Rarity }) =>
       computePrizeWeight({
         effectiveRarity: item.rarity,
-        level,
         luckModifier: user.luckModifier,
       }),
     rng,
@@ -267,7 +260,6 @@ export const calculatePrizeWeights = ({
     effectiveRarity: rarity,
     weight: computePrizeWeight({
       effectiveRarity: rarity,
-      level,
       luckModifier,
     }),
   }))

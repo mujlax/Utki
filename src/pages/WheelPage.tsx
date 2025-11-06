@@ -21,6 +21,7 @@ import { Wheel } from '../components/Wheel'
 import { PrizeGrid } from '../components/PrizeGrid'
 import { SpinHistory } from '../components/SpinHistory'
 import { AdminPanel } from '../components/Admin/AdminPanel'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { useUserStore } from '../store/userStore'
 import type {
   Prize,
@@ -316,6 +317,7 @@ const WheelPage = () => {
             {appName}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
+            <ThemeToggle />
             <Button component={RouterLink} to="/" color="inherit">
               Главная
             </Button>
@@ -358,7 +360,7 @@ const WheelPage = () => {
               spacing={3}
               alignItems={{ lg: 'flex-start' }}
             >
-              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Box sx={{ width: { xs: '100%', lg: 500 }, flexShrink: 0 }}>
                 <Wheel
                   weightedPrizes={weightedPrizes}
                   targetPrizeId={pendingResult?.prize?.prizeId}
@@ -395,7 +397,7 @@ const WheelPage = () => {
                   }}
                 />
               </Box>
-              <Box sx={{ width: { xs: '100%', lg: 360 } }}>
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                 <SpinPanel
                   levels={orderedLevels}
                   selectedLevel={selectedLevel}

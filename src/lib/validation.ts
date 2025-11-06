@@ -90,22 +90,6 @@ export const prizeSchema = z.object({
   removedFromWheel: booleanFromString.optional().default(false),
 })
 
-const rarityOverrideSchema = z
-  .record(z.string(), z.union([z.string(), z.number()]))
-  .transform((record) => {
-    const result: Partial<Record<Rarity, number>> = {}
-    Object.entries(record).forEach(([key, value]) => {
-      const numericKey = Number(key) as Rarity
-      if (numericKey >= 1 && numericKey <= 4) {
-        const numValue = typeof value === 'number' ? value : Number(value)
-        if (!Number.isNaN(numValue)) {
-          result[numericKey] = numValue
-        }
-      }
-    })
-    return result
-  })
-
 const rarityUpgradeSchema = z
   .record(z.string(), z.union([z.string(), z.number()]))
   .transform((record) => {
@@ -131,7 +115,6 @@ export const wheelSettingSchema = z.object({
   rarityUpgrades: jsonRecordFromString(rarityUpgradeSchema),
   pityStep: numberFromString,
   pityMax: numberFromString,
-  weightsOverrides: jsonRecordFromString(rarityOverrideSchema),
   seriesBonusEvery: numberFromString,
   seriesBonusType: z
     .union([

@@ -32,7 +32,6 @@ export interface WheelSetting {
   rarityUpgrades: Record<Rarity, Rarity>
   pityStep: number
   pityMax: number
-  weightsOverrides?: Partial<Record<Rarity, number>>
   seriesBonusEvery: number
   seriesBonusType?: 'freeSpin' | '+luck'
 }

@@ -24,12 +24,6 @@ const baseLevel: WheelSetting = {
     3: 3,
     4: 4,
   },
-  weightsOverrides: {
-    1: 1,
-    2: 1,
-    3: 1,
-    4: 1,
-  },
   seriesBonusEvery: 5,
   seriesBonusType: 'freeSpin',
 }
