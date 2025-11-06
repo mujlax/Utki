@@ -58,6 +58,7 @@ export const userSchema = z.object({
   userId: z.string(),
   name: z.string(),
   balance: numberFromString,
+  totalEarned: numberFromString.default(0),
   spinsTotal: numberFromString,
   lastResult: z.string().optional(),
   luckModifier: numberFromString,
@@ -159,6 +160,14 @@ export const shopOrderSchema = z.object({
   updatedAt: z.string(),
 })
 
+export const duckHistorySchema = z.object({
+  entryId: z.string(),
+  userId: z.string(),
+  amount: numberFromString,
+  note: z.string(),
+  createdAt: z.string(),
+})
+
 export type UserSchema = z.infer<typeof userSchema>
 export type PrizeSchema = z.infer<typeof prizeSchema>
 export type WheelSettingSchema = z.infer<typeof wheelSettingSchema>
@@ -170,6 +179,13 @@ export type ParsedPrize = Prize
 export type ParsedWheelSetting = WheelSetting
 export type ParsedSpinLog = SpinLogEntry
 export type ParsedShopOrder = ShopOrder
+export type ParsedDuckHistory = {
+  entryId: string
+  userId: string
+  amount: number
+  note: string
+  createdAt: string
+}
 
 export const sheetSchemas = {
   Users: userSchema,
@@ -177,6 +193,7 @@ export const sheetSchemas = {
   WheelSettings: wheelSettingSchema,
   SpinLog: spinLogSchema,
   ShopOrders: shopOrderSchema,
+  DuckHistory: duckHistorySchema,
 }
 
 export type SheetName = keyof typeof sheetSchemas

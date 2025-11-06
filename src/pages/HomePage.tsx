@@ -107,11 +107,19 @@ const HomePage = () => {
                       alignItems={{ xs: 'flex-start', sm: 'center' }}
                     >
                       <Typography variant="h6">{participant.name}</Typography>
-                      <Chip
-                        label={`${participant.balance} уточек`}
-                        color="primary"
-                        variant="outlined"
-                      />
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        <Chip
+                          label={`${participant.balance} уточек`}
+                          color="primary"
+                          variant="outlined"
+                        />
+                        <Chip
+                          label={`Всего заработано: ${participant.totalEarned}`}
+                          color="secondary"
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Stack>
                     </Stack>
                     {renderWins(participant.wins)}
                   </Stack>

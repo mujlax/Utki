@@ -6,6 +6,7 @@ import type {
   User,
   WheelSettingsMap,
   UserOverview,
+  DuckHistoryEntry,
 } from '../lib/types'
 
 export interface MeResponse {
@@ -45,6 +46,10 @@ export interface AdminSuccessResponse {
 
 export interface UsersOverviewResponse {
   users: UserOverview[]
+}
+
+export interface DuckHistoryResponse {
+  history: DuckHistoryEntry[]
 }
 
 export type ApiError = {

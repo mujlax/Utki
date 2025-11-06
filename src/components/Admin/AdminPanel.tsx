@@ -13,6 +13,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import type { Prize, WheelSetting } from '../../lib/types'
 import { PrizeManager } from './PrizeManager'
 import { SettingsManager } from './SettingsManager'
+import { DuckManager } from './DuckManager'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '../../api/client'
 import { useUserStore } from '../../store/userStore'
 
 interface AdminPanelProps {
@@ -32,6 +35,28 @@ export const AdminPanel = ({
 }: AdminPanelProps) => {
   const { authSecret, setAuthSecret } = useUserStore()
   const [localSecret, setLocalSecret] = useState(authSecret ?? '')
+  const queryClient = useQueryClient()
+
+  const usersQuery = useQuery({ queryKey: ['users-overview'], queryFn: apiClient.getUsersOverview })
+
+  const addDucksMutation = useMutation({
+    mutationFn: (payload: { userId: string; amount: number; note: string }) =>
+      apiClient.addDucks({
+        ...payload,
+        authSecret: authSecret ?? undefined,
+      }),
+    onSuccess: (data) => {
+      // Обновляем кэш пользователя
+      queryClient.invalidateQueries({ queryKey: ['user', data.user.userId] })
+      // Обновляем историю уточек
+      queryClient.invalidateQueries({ queryKey: ['duck-history', data.user.userId] })
+      // Обновляем обзор пользователей
+      queryClient.invalidateQueries({ queryKey: ['users-overview'] })
+    },
+    onSettled: () => {
+      // После завершения операции (успех или ошибка) форма очистится через DuckManager
+    },
+  })
 
   useEffect(() => {
     setLocalSecret(authSecret ?? '')
@@ -71,6 +96,32 @@ export const AdminPanel = ({
                 settings={settings}
                 onSave={onSaveSetting}
                 isSaving={isSaving}
+              />
+            </AccordionDetails>
+          </Accordion>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Управление уточками</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <DuckManager
+                users={(usersQuery.data?.users ?? []).map((u) => ({
+                  userId: u.userId,
+                  name: u.name,
+                  balance: u.balance,
+                  totalEarned: 0,
+                  spinsTotal: 0,
+                  luckModifier: 0,
+                  role: 'user',
+                  updatedAt: new Date(0).toISOString(),
+                }))}
+                onAdd={(payload) => {
+                  addDucksMutation.mutate(payload)
+                }}
+                isSaving={addDucksMutation.isPending}
+                onSuccess={() => {
+                  // Форма очистится автоматически через DuckManager
+                }}
               />
             </AccordionDetails>
           </Accordion>

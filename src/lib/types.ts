@@ -6,6 +6,7 @@ export interface User {
   userId: string
   name: string
   balance: number
+  totalEarned: number
   spinsTotal: number
   lastResult?: string
   luckModifier: number
@@ -85,5 +86,14 @@ export interface UserOverview {
   userId: string
   name: string
   balance: number
+  totalEarned: number
   wins: UserWinSummary[]
+}
+
+export interface DuckHistoryEntry {
+  entryId: string
+  userId: string
+  amount: number
+  note: string
+  createdAt: string
 }

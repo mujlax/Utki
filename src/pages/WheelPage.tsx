@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import { BalanceCard } from '../components/BalanceCard'
+import { DuckHistory } from '../components/DuckHistory'
 import { SpinPanel } from '../components/SpinPanel'
 import { Wheel } from '../components/Wheel'
 import { PrizeGrid } from '../components/PrizeGrid'
@@ -355,6 +356,7 @@ const WheelPage = () => {
         ) : user ? (
           <Stack spacing={4}>
             <BalanceCard user={user} />
+            <DuckHistory userId={user.userId} />
             <Stack
               direction={{ xs: 'column', lg: 'row' }}
               spacing={3}

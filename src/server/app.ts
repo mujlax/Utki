@@ -3,7 +3,7 @@ import cors from 'cors'
 import { sheetsClient } from '../lib/sheets.js'
 import { env } from './config/env.js'
 import { purchasePrize, spinWheel } from '../lib/economy.js'
-import type { Prize, WheelSetting, User, SpinLogEntry } from '../lib/types.js'
+import type { Prize, WheelSetting, User, SpinLogEntry, DuckHistoryEntry } from '../lib/types.js'
 
 type AsyncHandler = (
   req: Request,
@@ -148,6 +148,7 @@ export const createApp = () => {
           userId: user.userId,
           name: user.name,
           balance: user.balance,
+          totalEarned: user.totalEarned,
           wins,
         }
       })
@@ -190,6 +191,23 @@ export const createApp = () => {
         : undefined
       const orders = await sheetsClient.listShopOrders(userId)
       res.json({ orders })
+    }),
+  )
+
+  app.get(
+    '/api/duck-history',
+    asyncHandler(async (req, res) => {
+      const userId = req.query.userId
+        ? String(req.query.userId)
+        : undefined
+      if (!userId) {
+        res.status(400).json({ error: 'USER_ID_REQUIRED' })
+        return
+      }
+      const history = await sheetsClient.listDuckHistory(userId)
+      // Сортируем по дате создания (новые сверху)
+      history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      res.json({ history })
     }),
   )
 
@@ -238,6 +256,44 @@ export const createApp = () => {
           : result,
         user: nextUser,
       })
+    }),
+  )
+
+  app.post(
+    '/api/admin/add-ducks',
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+      const { userId, amount, note } = req.body as {
+        userId?: string
+        amount?: number
+        note?: string
+      }
+      if (!userId || typeof amount !== 'number' || !Number.isFinite(amount) || !note) {
+        res.status(400).json({ error: 'INVALID_INPUT' })
+        return
+      }
+      const user = await sheetsClient.getUserById(userId)
+      if (!user) {
+        res.status(404).json({ error: 'USER_NOT_FOUND' })
+        return
+      }
+      const now = new Date().toISOString()
+      const nextUser: User = {
+        ...user,
+        balance: user.balance + amount,
+        totalEarned: (user.totalEarned ?? 0) + amount,
+        updatedAt: now,
+      }
+      const entry: DuckHistoryEntry = {
+        entryId: crypto.randomUUID(),
+        userId: user.userId,
+        amount,
+        note,
+        createdAt: now,
+      }
+      await sheetsClient.saveUser(nextUser)
+      await sheetsClient.appendDuckHistory(entry)
+      res.json({ user: nextUser, entry })
     }),
   )
 

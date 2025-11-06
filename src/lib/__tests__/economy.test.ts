@@ -7,6 +7,7 @@ const baseUser: User = {
   userId: 'u1',
   name: 'Test User',
   balance: 100,
+  totalEarned: 100,
   spinsTotal: 0,
   luckModifier: 0,
   role: 'user',

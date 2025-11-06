@@ -1,6 +1,7 @@
 import type {
   AdminSuccessResponse,
   BuyResponse,
+  DuckHistoryResponse,
   MeResponse,
   OrdersResponse,
   PrizesResponse,
@@ -9,7 +10,7 @@ import type {
   SpinResponse,
   UsersOverviewResponse,
 } from './types'
-import type { Prize, WheelSetting } from '../lib/types'
+import type { Prize, WheelSetting, User } from '../lib/types'
 import { clientEnv } from '../lib/env'
 
 const joinUrl = (path: string) => {
@@ -80,6 +81,12 @@ export const apiClient = {
     return handleResponse<OrdersResponse>(response)
   },
 
+  getDuckHistory: async (userId: string) => {
+    const query = toUrlSearchParams({ userId })
+    const response = await fetch(joinUrl(`/api/duck-history?${query}`))
+    return handleResponse<DuckHistoryResponse>(response)
+  },
+
   spin: async (payload: { userId: string; betLevel: string; seed?: string }) => {
     const response = await fetch(joinUrl('/api/spin'), {
       method: 'POST',
@@ -111,6 +118,18 @@ export const apiClient = {
       }),
     })
     return handleResponse<AdminSuccessResponse>(response)
+  },
+
+  addDucks: async (payload: { userId: string; amount: number; note: string; authSecret?: string }) => {
+    const response = await fetch(joinUrl('/api/admin/add-ducks'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(payload.authSecret ? { 'x-auth-secret': payload.authSecret } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+    return handleResponse<{ user: User; entry: { entryId: string } }>(response)
   },
 
   saveSetting: async (payload: { setting: WheelSetting; authSecret?: string }) => {

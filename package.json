@@ -17,7 +17,8 @@
     "start:server": "node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest watch --reporter=verbose",
-    "seed": "tsx --env-file=.env.local scripts/dev-seed.ts"
+    "seed": "tsx --env-file=.env.local scripts/dev-seed.ts",
+    "create-sheets": "tsx --env-file=.env.local scripts/create-sheets.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

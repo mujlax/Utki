@@ -8,6 +8,7 @@ import type {
   User,
   WheelSetting,
   WheelSettingsMap,
+  DuckHistoryEntry,
 } from './types.js'
 import { env } from '../server/config/env.js'
 
@@ -18,6 +19,7 @@ const SHEET_COLUMNS = {
     'userId',
     'name',
     'balance',
+    'totalEarned',
     'spinsTotal',
     'lastResult',
     'luckModifier',
@@ -67,6 +69,13 @@ const SHEET_COLUMNS = {
     'createdAt',
     'updatedAt',
   ],
+  DuckHistory: [
+    'entryId',
+    'userId',
+    'amount',
+    'note',
+    'createdAt',
+  ],
 } as const satisfies Record<SheetName, string[]>
 
 type SheetColumns<N extends SheetName> = (typeof SHEET_COLUMNS)[N]
@@ -97,6 +106,7 @@ const serializeUser = (user: User) => [
   user.userId,
   user.name,
   String(user.balance),
+  String(user.totalEarned),
   String(user.spinsTotal),
   user.lastResult ?? '',
   user.luckModifier.toString(),
@@ -151,12 +161,21 @@ const serializeShopOrder = (order: ShopOrder) => [
   order.updatedAt,
 ]
 
+const serializeDuckHistory = (entry: DuckHistoryEntry) => [
+  entry.entryId,
+  entry.userId,
+  entry.amount.toString(),
+  entry.note,
+  entry.createdAt,
+]
+
 const serializerMap: Record<SheetName, (value: unknown) => string[]> = {
   Users: (value) => serializeUser(value as User),
   Prizes: (value) => serializePrize(value as Prize),
   WheelSettings: (value) => serializeWheelSetting(value as WheelSetting),
   SpinLog: (value) => serializeSpinLog(value as SpinLogEntry),
   ShopOrders: (value) => serializeShopOrder(value as ShopOrder),
+  DuckHistory: (value) => serializeDuckHistory(value as DuckHistoryEntry),
 }
 
 export class SheetsClient {
@@ -186,24 +205,73 @@ export class SheetsClient {
     sheet: N,
   ): Promise<Array<SheetRecord<N, T>>> {
     const sheetColumns = SHEET_COLUMNS[sheet] as readonly string[]
-    const range = rangeForSheet(sheet, sheetColumns.length)
+    // Читаем больше колонок, чтобы захватить все возможные (до Z, что дает 26 колонок)
+    const maxColumns = Math.max(sheetColumns.length, 26)
+    const range = rangeForSheet(sheet, maxColumns)
     const { data } = await this.sheets.spreadsheets.values.get({
       spreadsheetId: this.spreadsheetId,
       range,
     })
     const values = data.values ?? []
+    if (values.length === 0) {
+      return []
+    }
+    
+    // Читаем заголовки из первой строки
+    const headerRow = values[0] as string[]
+    const columnIndexMap = new Map<string, number>()
+    headerRow.forEach((header, index) => {
+      const normalizedHeader = header.trim().toLowerCase().replace(/\s+/g, '')
+      columnIndexMap.set(normalizedHeader, index)
+    })
+    
+    // Создаем маппинг ожидаемых колонок на индексы в таблице
+    const expectedColumnIndices = new Map<string, number>()
+    const missingColumns: string[] = []
+    sheetColumns.forEach((expectedColumn) => {
+      const normalizedExpected = expectedColumn.trim().toLowerCase().replace(/\s+/g, '')
+      const index = columnIndexMap.get(normalizedExpected)
+      if (index !== undefined) {
+        expectedColumnIndices.set(expectedColumn, index)
+      } else {
+        missingColumns.push(expectedColumn)
+      }
+    })
+    
+    if (missingColumns.length > 0 && sheet === 'Users') {
+      console.warn(`Missing columns in sheet ${sheet}:`, missingColumns)
+      console.warn('Available headers:', headerRow)
+      console.warn('Column mapping:', Array.from(expectedColumnIndices.entries()).map(([col, idx]) => `${col} -> ${headerRow[idx]}`))
+    }
+    
     const rows = values.slice(1) as string[][]
     const schema = sheetSchemas[sheet] as unknown as z.ZodSchema<T>
     const records: Array<SheetRecord<N, T>> = rows.map((row, index) => {
       const rawRow = {} as SheetRow<N>
-      sheetColumns.forEach((column: string, columnIndex: number) => {
-        rawRow[column as SheetColumns<N>[number]] =
-          row[columnIndex] ?? ''
+      sheetColumns.forEach((column: string) => {
+        const columnIndex = expectedColumnIndices.get(column)
+        const value = columnIndex !== undefined ? row[columnIndex] : undefined
+        rawRow[column as SheetColumns<N>[number]] = value === undefined || value === null ? '' : String(value)
       })
-      const parsed = schema.parse(rawRow)
+      const parseResult = schema.safeParse(rawRow)
+      if (!parseResult.success) {
+        const errorDetails = parseResult.error.errors.map((err) => {
+          const field = err.path.join('.')
+          const value = err.path.reduce((obj: any, key) => obj?.[key], rawRow)
+          return `Field "${field}": ${err.message} (value: "${value}")`
+        })
+        console.error(`Error parsing row ${index + 2} in sheet ${sheet}:`)
+        console.error('Validation errors:', errorDetails)
+        console.error('Raw row:', rawRow)
+        console.error('Expected columns:', sheetColumns)
+        console.error('Header row:', headerRow)
+        console.error('Column mapping:', Array.from(expectedColumnIndices.entries()).map(([col, idx]) => `${col} -> index ${idx} (${headerRow[idx]})`))
+        console.error('Full row data:', row)
+        throw new Error(`Validation failed for row ${index + 2}: ${errorDetails.join('; ')}`)
+      }
       return {
         raw: rawRow,
-        parsed,
+        parsed: parseResult.data,
         rowNumber: index + 2,
       }
     })
@@ -258,6 +326,16 @@ export class SheetsClient {
     } else {
       await this.appendRow('Users', user)
     }
+  }
+
+  async appendDuckHistory(entry: DuckHistoryEntry) {
+    await this.appendRow('DuckHistory', entry)
+  }
+
+  async listDuckHistory(userId?: string): Promise<DuckHistoryEntry[]> {
+    const rows = await this.readSheet<'DuckHistory', DuckHistoryEntry>('DuckHistory')
+    const all = rows.map((r) => r.parsed)
+    return userId ? all.filter((e) => e.userId === userId) : all
   }
 
   async listPrizes(): Promise<Prize[]> {
