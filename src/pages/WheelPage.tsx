@@ -89,10 +89,13 @@ const WheelPage = () => {
     enabled: !!userId,
     staleTime: 60_000,
     retry: 1,
-    onSuccess: (data) => {
-      setAppName(data.appName)
-    },
   })
+
+  useEffect(() => {
+    if (userQuery.data?.appName) {
+      setAppName(userQuery.data.appName)
+    }
+  }, [userQuery.data?.appName])
 
   const settingsQuery = useQuery({
     queryKey: ['settings'],
@@ -195,13 +198,13 @@ const WheelPage = () => {
     }
   }, [orderedLevels, selectedLevel])
 
-  const isLoading = userQuery.isLoading || settingsQuery.isLoading || prizesQuery.isLoading
+  const isLoading = userQuery.isPending || settingsQuery.isPending || prizesQuery.isPending
 
   const prizes = useMemo(
     () => prizesQuery.data?.prizes ?? [],
     [prizesQuery.data?.prizes],
   )
-  const user = userQuery.data?.user
+  const user = userQuery.data?.user ?? null
   const logs = logsQuery.data?.logs ?? []
   const orders = ordersQuery.data?.orders ?? []
 
@@ -399,12 +402,12 @@ const WheelPage = () => {
                   onSelect={setSelectedLevel}
                   onSpin={handleSpin}
                   isSpinning={
-                    isSpinInProgress || spinMutation.isLoading || Boolean(pendingResult)
+                    isSpinInProgress || spinMutation.isPending || Boolean(pendingResult)
                   }
                   disabled={
-                    user.balance < (settingsMap?.[selectedLevel]?.spinCost ?? 0) ||
+                    !user || user.balance < (settingsMap?.[selectedLevel]?.spinCost ?? 0) ||
                     isSpinInProgress ||
-                    spinMutation.isLoading ||
+                    spinMutation.isPending ||
                     Boolean(pendingResult)
                   }
                 />
@@ -415,7 +418,7 @@ const WheelPage = () => {
               <PrizeGrid
                 prizes={sortedDisplayPrizes}
                 onBuy={(prize) => handleBuy(prize.prizeId)}
-                disabled={buyMutation.isLoading}
+                disabled={buyMutation.isPending}
               />
             </Stack>
             <SpinHistory logs={logs} orders={orders} />
@@ -426,7 +429,7 @@ const WheelPage = () => {
                 onSavePrize={adminPrizeMutation.mutate}
                 onSaveSetting={adminSettingMutation.mutate}
                 isSaving={
-                  adminPrizeMutation.isLoading || adminSettingMutation.isLoading
+                  adminPrizeMutation.isPending || adminSettingMutation.isPending
                 }
               />
             ) : null}
@@ -443,7 +446,7 @@ const WheelPage = () => {
         onClose={() => setSnackbar(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        {snackbar ? <Alert severity={snackbar.severity}>{snackbar.message}</Alert> : null}
+        {snackbar ? <Alert severity={snackbar.severity}>{snackbar.message}</Alert> : undefined}
       </Snackbar>
     </>
   )

@@ -6,7 +6,7 @@ import type {
   SpinLogEntry,
   User,
   WheelSetting,
-} from './types'
+} from './types.js'
 
 const raritySchema = z.union([
   z.literal(1),
@@ -52,7 +52,7 @@ const jsonRecordFromString = <T>(schema: z.ZodSchema<T>) =>
     } catch (error) {
       throw new Error(`Cannot parse JSON from value "${value}": ${error}`)
     }
-  }) as z.ZodType<T>
+  }) as unknown as z.ZodType<T>
 
 export const userSchema = z.object({
   userId: z.string(),

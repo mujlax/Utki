@@ -1,5 +1,5 @@
 import { google } from 'googleapis'
-import { env } from '../src/server/config/env'
+import { env } from '../src/server/config/env.js'
 
 const REQUIRED_PRIZE_COLUMNS = [
   'prizeId',
@@ -88,7 +88,7 @@ async function updatePrizesSheet() {
       const removeAfterWinIndex = newHeaders.indexOf('removeAfterWin')
       
       // Update existing rows with default value FALSE
-      const updates = dataRows.map((row, index) => {
+      const updates = dataRows.map((row: string[], index: number) => {
         const updatedRow = [...row]
         // Ensure row has enough columns
         while (updatedRow.length <= removeAfterWinIndex) {

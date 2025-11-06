@@ -15,8 +15,9 @@
     "noEmit": false,
     "noEmitOnError": true,
     "verbatimModuleSyntax": true,
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "types": ["vite/client"]
   },
   "include": ["src/server/**/*.ts", "src/lib/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/lib/env.ts"]
 }

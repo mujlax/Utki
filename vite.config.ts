@@ -5,14 +5,4 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/**/*.{ts,tsx}'],
-    },
-  },
 })

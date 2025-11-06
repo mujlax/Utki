@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
-import { sheetsClient } from '../src/lib/sheets'
-import type { Prize, User, WheelSetting } from '../src/lib/types'
+import { sheetsClient } from '../src/lib/sheets.js'
+import type { Prize, User, WheelSetting } from '../src/lib/types.js'
 
 const nowIso = () => new Date().toISOString()
 

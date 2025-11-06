@@ -1,6 +1,6 @@
 import { google, type sheets_v4 } from 'googleapis'
 import type { z } from 'zod'
-import { sheetSchemas } from './validation'
+import { sheetSchemas } from './validation.js'
 import type {
   Prize,
   ShopOrder,
@@ -8,8 +8,8 @@ import type {
   User,
   WheelSetting,
   WheelSettingsMap,
-} from './types'
-import { env } from '../server/config/env'
+} from './types.js'
+import { env } from '../server/config/env.js'
 
 type SheetName = keyof typeof sheetSchemas
 
@@ -83,13 +83,13 @@ const rangeForSheet = (sheet: SheetName, columns: number) => {
   const start = 'A'
   const endCharCode = 'A'.charCodeAt(0) + columns - 1
   const end = String.fromCharCode(endCharCode)
-  return `${sheet}!${start}:${end}`
+  return `${String(sheet)}!${start}:${end}`
 }
 
 const rangeForRow = (sheet: SheetName, columns: number, row: number) => {
   const endCharCode = 'A'.charCodeAt(0) + columns - 1
   const end = String.fromCharCode(endCharCode)
-  return `${sheet}!A${row}:${end}${row}`
+  return `${String(sheet)}!A${row}:${end}${row}`
 }
 
 const serializeBoolean = (value: boolean) => (value ? 'TRUE' : 'FALSE')
@@ -163,8 +163,10 @@ const serializerMap: Record<SheetName, (value: unknown) => string[]> = {
 
 export class SheetsClient {
   private sheets: sheets_v4.Sheets
+  private readonly spreadsheetId: string
 
-  private constructor(private readonly spreadsheetId: string) {
+  private constructor(spreadsheetId: string) {
+    this.spreadsheetId = spreadsheetId
     const auth = new google.auth.JWT({
       email: env.serviceAccountEmail,
       key: env.serviceAccountKey,
@@ -185,17 +187,18 @@ export class SheetsClient {
   private async readSheet<N extends SheetName, T>(
     sheet: N,
   ): Promise<Array<SheetRecord<N, T>>> {
-    const range = rangeForSheet(sheet, SHEET_COLUMNS[sheet].length)
+    const sheetColumns = SHEET_COLUMNS[sheet] as readonly string[]
+    const range = rangeForSheet(sheet, sheetColumns.length)
     const { data } = await this.sheets.spreadsheets.values.get({
       spreadsheetId: this.spreadsheetId,
       range,
     })
     const values = data.values ?? []
     const rows = values.slice(1) as string[][]
-    const schema = sheetSchemas[sheet] as z.ZodSchema<T>
+    const schema = sheetSchemas[sheet] as unknown as z.ZodSchema<T>
     const records: Array<SheetRecord<N, T>> = rows.map((row, index) => {
       const rawRow = {} as SheetRow<N>
-      SHEET_COLUMNS[sheet].forEach((column, columnIndex) => {
+      sheetColumns.forEach((column: string, columnIndex: number) => {
         rawRow[column as SheetColumns<N>[number]] =
           row[columnIndex] ?? ''
       })
@@ -214,7 +217,8 @@ export class SheetsClient {
     rowNumber: number,
     value: unknown,
   ) {
-    const range = rangeForRow(sheet, SHEET_COLUMNS[sheet].length, rowNumber)
+    const sheetColumns = SHEET_COLUMNS[sheet] as readonly string[]
+    const range = rangeForRow(sheet, sheetColumns.length, rowNumber)
     const values = [serializerMap[sheet](value)]
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: this.spreadsheetId,
@@ -225,7 +229,8 @@ export class SheetsClient {
   }
 
   private async appendRow<N extends SheetName>(sheet: N, value: unknown) {
-    const range = rangeForSheet(sheet, SHEET_COLUMNS[sheet].length)
+    const sheetColumns = SHEET_COLUMNS[sheet] as readonly string[]
+    const range = rangeForSheet(sheet, sheetColumns.length)
     const values = [serializerMap[sheet](value)]
     await this.sheets.spreadsheets.values.append({
       spreadsheetId: this.spreadsheetId,

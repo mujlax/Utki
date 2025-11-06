@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid'
-import { createRng, pickWeighted, type RandomGenerator } from './rng'
+import { createRng, pickWeighted, type RandomGenerator } from './rng.js'
 import type {
   Prize,
   Rarity,
@@ -8,7 +8,7 @@ import type {
   SpinResult,
   User,
   WheelSetting,
-} from './types'
+} from './types.js'
 
 export const RARITY_BASE_WEIGHTS: Record<Rarity, number> = {
   1: 60,
@@ -158,9 +158,9 @@ export const spinWheel = (context: SpinContext): SpinOutcome => {
 
   const selected = pickWeighted(
     prizePool,
-    ({ rarity }) =>
+    (item: { prize: Prize; rarity: Rarity }) =>
       computePrizeWeight({
-        effectiveRarity: rarity,
+        effectiveRarity: item.rarity,
         level,
         luckModifier: user.luckModifier,
       }),
