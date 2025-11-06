@@ -4,15 +4,21 @@ import { PrizeCard } from './PrizeCard'
 
 interface PrizeGridProps {
   prizes: Prize[]
-  onBuy?: (prize: Prize) => void
+  onBuy?: (prizeId: string) => void
   disabled?: boolean
+  wonPrizeIds?: Set<string>
 }
 
-export const PrizeGrid = ({ prizes, onBuy, disabled }: PrizeGridProps) => (
+export const PrizeGrid = ({ prizes, onBuy, disabled, wonPrizeIds }: PrizeGridProps) => (
   <Grid container spacing={2}>
     {prizes.map((prize) => (
       <Grid item key={prize.prizeId} xs={12} sm={6} md={4} lg={3}>
-        <PrizeCard prize={prize} onBuy={onBuy} disabled={disabled} />
+        <PrizeCard 
+          prize={prize} 
+          onBuy={onBuy ? (p) => onBuy(p.prizeId) : undefined} 
+          disabled={disabled}
+          isWonByUser={wonPrizeIds?.has(prize.prizeId)}
+        />
       </Grid>
     ))}
   </Grid>

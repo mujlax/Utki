@@ -28,13 +28,17 @@ interface PrizeCardProps {
   prize: Prize
   onBuy?: (prize: Prize) => void
   disabled?: boolean
+  isWonByUser?: boolean
 }
 
-export const PrizeCard = ({ prize, onBuy, disabled }: PrizeCardProps) => {
+export const PrizeCard = ({ prize, onBuy, disabled, isWonByUser }: PrizeCardProps) => {
   const isRemoved = prize.removeAfterWin && prize.removedFromWheel
   const statusLabel = (() => {
     if (isRemoved) {
       return 'Уже выигран'
+    }
+    if (isWonByUser && prize.removeAfterWin) {
+      return 'Вы уже выигрывали'
     }
     return prize.active ? 'Активен' : 'Выключен'
   })()
@@ -43,11 +47,18 @@ export const PrizeCard = ({ prize, onBuy, disabled }: PrizeCardProps) => {
     if (isRemoved) {
       return 'warning.main'
     }
+    if (isWonByUser && prize.removeAfterWin) {
+      return 'info.main'
+    }
     return prize.active ? 'success.main' : 'error.main'
   })()
 
   const canBuy =
-    !isRemoved && prize.directBuyEnabled && prize.directBuyPrice !== undefined && onBuy
+    !isRemoved &&
+    !(isWonByUser && prize.removeAfterWin) &&
+    prize.directBuyEnabled &&
+    prize.directBuyPrice !== undefined &&
+    onBuy
 
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
@@ -64,7 +75,7 @@ export const PrizeCard = ({ prize, onBuy, disabled }: PrizeCardProps) => {
           <Typography variant="body2" color="text.secondary">
             {prize.description}
           </Typography>
-          {prize.removeAfterWin && !isRemoved && (
+          {!isWonByUser && prize.removeAfterWin && !isRemoved && (
             <Chip
               icon={<InfoIcon sx={{ fontSize: 16 }} />}
               label="Можно выиграть только 1 раз"

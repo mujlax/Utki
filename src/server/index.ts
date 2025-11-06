@@ -9,7 +9,7 @@ const app = createApp()
 // For local development, create HTTP server
 if (!process.env.VERCEL) {
   // Local development: create HTTP server
-  createServer(app).listen(port, () => {
-    console.log(`[wheel] Server listening on port ${port} (${env.appName})`)
-  })
+createServer(app).listen(port, () => {
+  console.log(`[wheel] Server listening on port ${port} (${env.appName})`)
+})
 }

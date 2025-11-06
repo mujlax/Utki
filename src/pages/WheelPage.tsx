@@ -44,6 +44,7 @@ const WheelPage = () => {
   const [revealedResult, setRevealedResult] = useState<SpinResult | null>(null)
   const [isSpinInProgress, setIsSpinInProgress] = useState(false)
   const [isWaitingForResult, setIsWaitingForResult] = useState(false)
+  const [isCooldownActive, setIsCooldownActive] = useState(false)
   const [pendingUserUpdate, setPendingUserUpdate] = useState<User | null>(null)
   const [pendingSnackbarMessage, setPendingSnackbarMessage] = useState<string | null>(null)
   const [selectedLevel, setSelectedLevel] = useState<WheelLevelKey>('basic')
@@ -52,10 +53,20 @@ const WheelPage = () => {
     null,
   )
   const pendingResultRef = useRef<SpinResult | null>(null)
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     pendingResultRef.current = pendingResult
   }, [pendingResult])
+
+  // Очищаем таймер при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const storedUser = localStorage.getItem('utki:userId')
@@ -145,6 +156,12 @@ const WheelPage = () => {
       setPendingSnackbarMessage(null)
       setIsWaitingForResult(false)
       setIsSpinInProgress(false)
+      // Очищаем задержку при ошибке
+      setIsCooldownActive(false)
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current)
+        cooldownTimerRef.current = null
+      }
     },
   })
 
@@ -228,7 +245,14 @@ const WheelPage = () => {
   )
 
   const sortedDisplayPrizes = useMemo(() => {
-    const copy = [...displayPrizes]
+    // Убираем дубликаты по prizeId
+    const uniquePrizes = new Map<string, Prize>()
+    displayPrizes.forEach((prize) => {
+      if (!uniquePrizes.has(prize.prizeId)) {
+        uniquePrizes.set(prize.prizeId, prize)
+      }
+    })
+    const copy = Array.from(uniquePrizes.values())
     copy.sort((a, b) => {
       if (b.rarity !== a.rarity) {
         return b.rarity - a.rarity
@@ -237,6 +261,18 @@ const WheelPage = () => {
     })
     return copy
   }, [displayPrizes])
+
+  // Создаем Set с ID призов, которые пользователь уже выигрывал
+  const wonPrizeIds = useMemo(() => {
+    if (!user || logs.length === 0) {
+      return new Set<string>()
+    }
+    return new Set(
+      logs
+        .filter((log) => log.prizeId && log.userId === user.userId)
+        .map((log) => log.prizeId!)
+    )
+  }, [user, logs])
 
   const wheelEligiblePrizes = useMemo(() => {
     const usablePrizes = availablePrizes.filter(
@@ -248,8 +284,25 @@ const WheelPage = () => {
     } else if (selectedLevel === 'epic') {
       filtered = usablePrizes.filter((prize) => prize.rarity > 2)
     }
+    
+    // Исключаем призы, которые пользователь уже выигрывал (если у них removeAfterWin=true)
+    if (user && logs.length > 0) {
+      const wonPrizeIds = new Set(
+        logs
+          .filter((log) => log.prizeId && log.userId === user.userId)
+          .map((log) => log.prizeId!)
+      )
+      filtered = filtered.filter((prize) => {
+        // Если приз с removeAfterWin и пользователь уже выигрывал его - скрываем
+        if (prize.removeAfterWin && wonPrizeIds.has(prize.prizeId)) {
+          return false
+        }
+        return true
+      })
+    }
+    
     return filtered.length > 0 ? filtered : usablePrizes
-  }, [availablePrizes, selectedLevel])
+  }, [availablePrizes, selectedLevel, user, logs])
 
   const weightedPrizes = useMemo(() => {
     if (!wheelEligiblePrizes.length) {
@@ -291,6 +344,12 @@ const WheelPage = () => {
   const handleSpin = () => {
     if (!userId || isSpinInProgress) {
       return
+    }
+    // Очищаем задержку при начале новой крутки
+    setIsCooldownActive(false)
+    if (cooldownTimerRef.current) {
+      clearTimeout(cooldownTimerRef.current)
+      cooldownTimerRef.current = null
     }
     setIsSpinInProgress(true)
     setIsWaitingForResult(true)
@@ -385,6 +444,10 @@ const WheelPage = () => {
                       })
                       setPendingUserUpdate(null)
                       queryClient.invalidateQueries({ queryKey: ['logs', userId] })
+                      // Invalidate duck history if a refund occurred
+                      if (result?.freeSpinRefund) {
+                        queryClient.invalidateQueries({ queryKey: ['duck-history', userId] })
+                      }
                     }
                     if (pendingSnackbarMessage) {
                       setSnackbar({ message: pendingSnackbarMessage, severity: 'success' })
@@ -395,6 +458,16 @@ const WheelPage = () => {
                     }
                     setIsSpinInProgress(false)
                     setIsWaitingForResult(false)
+                    // Активируем задержку на 5 секунд перед следующей круткой
+                    setIsCooldownActive(true)
+                    // Очищаем предыдущий таймер, если он был
+                    if (cooldownTimerRef.current) {
+                      clearTimeout(cooldownTimerRef.current)
+                    }
+                    cooldownTimerRef.current = setTimeout(() => {
+                      setIsCooldownActive(false)
+                      cooldownTimerRef.current = null
+                    }, 5000)
                   }}
                 />
               </Box>
@@ -411,7 +484,8 @@ const WheelPage = () => {
                     !user ||
                     isSpinInProgress ||
                     spinMutation.isPending ||
-                    Boolean(pendingResult)
+                    Boolean(pendingResult) ||
+                    isCooldownActive
                   }
                   canSpin={
                     user !== null &&
@@ -424,8 +498,9 @@ const WheelPage = () => {
               <Typography variant="h6">Активный пул призов</Typography>
               <PrizeGrid
                 prizes={sortedDisplayPrizes}
-                onBuy={(prize) => handleBuy(prize.prizeId)}
+                onBuy={(prizeId) => handleBuy(prizeId)}
                 disabled={buyMutation.isPending}
+                wonPrizeIds={wonPrizeIds}
               />
             </Stack>
             <SpinHistory logs={logs} orders={orders} />

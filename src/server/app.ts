@@ -104,7 +104,9 @@ export const createApp = () => {
         sheetsClient.listSpinLogs(),
       ])
 
-      const overview = users.map((user: User) => {
+      const overview = users
+        .filter((user: User) => user.role !== 'admin') // Исключаем администраторов
+        .map((user: User) => {
         const winsMap = new Map<
           string,
           {
@@ -241,6 +243,24 @@ export const createApp = () => {
       } else if (level.level === 'legendary') {
         eligiblePrizes = usablePrizes.filter((p: Prize) => p.rarity > 3)
       }
+      
+      // Исключаем призы, которые пользователь уже выигрывал (если у них removeAfterWin=true)
+      const userLogs = await sheetsClient.listSpinLogs(user.userId)
+      if (userLogs.length > 0) {
+        const wonPrizeIds = new Set(
+          userLogs
+            .filter((log: SpinLogEntry) => log.prizeId && log.userId === user.userId)
+            .map((log: SpinLogEntry) => log.prizeId!)
+        )
+        eligiblePrizes = eligiblePrizes.filter((p: Prize) => {
+          // Если приз с removeAfterWin и пользователь уже выигрывал его - исключаем
+          if (p.removeAfterWin && wonPrizeIds.has(p.prizeId)) {
+            return false
+          }
+          return true
+        })
+      }
+      
       if (eligiblePrizes.length === 0) {
         res.status(400).json({ error: 'NO_PRIZES_AVAILABLE' })
         return
@@ -252,8 +272,30 @@ export const createApp = () => {
         prizes: eligiblePrizes,
         seed: body.seed,
       })
+      
+      // Проверяем, был ли этот приз уже выигран пользователем ранее
+      let freeSpinRefund = 0
+      let hasWonBefore = false
+      if (result.prize?.prizeId) {
+        const prizeId = result.prize.prizeId
+        const userLogs = await sheetsClient.listSpinLogs(user.userId)
+        hasWonBefore = userLogs.some(
+          (log: SpinLogEntry) => log.prizeId === prizeId && log.userId === user.userId
+        )
+        
+        // Проверяем полный список призов для проверки removeAfterWin
+        const fullPrize = prizes.find((p: Prize) => p.prizeId === prizeId)
+        
+        if (hasWonBefore && fullPrize?.removeAfterWin) {
+          // Пользователь уже выигрывал этот приз с removeAfterWin - возвращаем стоимость крутки
+          freeSpinRefund = level.spinCost
+          nextUser.balance += freeSpinRefund
+        }
+      }
+      
       let updatedPrize = result.prize
-      if (result.prize?.removeAfterWin && !result.prize.removedFromWheel) {
+      // Удаляем приз из колеса только если пользователь выигрывает его в первый раз
+      if (result.prize?.removeAfterWin && !result.prize.removedFromWheel && !hasWonBefore) {
         const prizeToUpdate = prizes.find(
           (item: Prize) => item.prizeId === result.prize?.prizeId,
         )
@@ -268,10 +310,18 @@ export const createApp = () => {
       }
       await sheetsClient.saveUser(nextUser)
       await sheetsClient.appendSpinLog(logEntry)
+      
+      // Обновляем result с учетом возврата уточек
+      const finalResult: typeof result = {
+        ...result,
+        balanceAfter: nextUser.balance,
+        freeSpinRefund: freeSpinRefund > 0 ? freeSpinRefund : undefined,
+      }
+      
       res.json({
         result: updatedPrize
-          ? { ...result, prize: updatedPrize }
-          : result,
+          ? { ...finalResult, prize: updatedPrize }
+          : finalResult,
         user: nextUser,
       })
     }),

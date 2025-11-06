@@ -48,6 +48,7 @@ export interface SpinResult {
   luckAfter: number
   freeSpinAwarded?: boolean
   seriesBonusApplied?: boolean
+  freeSpinRefund?: number
 }
 
 export interface SpinLogEntry {
