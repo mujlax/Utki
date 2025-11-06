@@ -18,6 +18,6 @@
     "allowImportingTsExtensions": false,
     "types": ["vite/client"]
   },
-  "include": ["src/server/**/*.ts", "src/lib/**/*.ts", "scripts/**/*.ts"],
+  "include": ["src/server/**/*.ts", "src/lib/**/*.ts", "scripts/**/*.ts", "api/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/lib/env.ts"]
 }
