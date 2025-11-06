@@ -407,10 +407,14 @@ const WheelPage = () => {
                     isSpinInProgress || spinMutation.isPending || Boolean(pendingResult)
                   }
                   disabled={
-                    !user || user.balance < (settingsMap?.[selectedLevel]?.spinCost ?? 0) ||
+                    !user ||
                     isSpinInProgress ||
                     spinMutation.isPending ||
                     Boolean(pendingResult)
+                  }
+                  canSpin={
+                    user !== null &&
+                    user.balance >= (settingsMap?.[selectedLevel]?.spinCost ?? 0)
                   }
                 />
               </Box>

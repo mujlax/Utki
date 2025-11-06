@@ -19,6 +19,7 @@ interface SpinPanelProps {
   onSpin: () => void
   isSpinning: boolean
   disabled?: boolean
+  canSpin?: boolean
 }
 
 const levelLabel: Record<WheelLevelKey, string> = {
@@ -35,6 +36,7 @@ export const SpinPanel = ({
   onSpin,
   isSpinning,
   disabled,
+  canSpin = true,
 }: SpinPanelProps) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const selectedDetails = levels.find((level) => level.level === selectedLevel)
@@ -92,7 +94,7 @@ export const SpinPanel = ({
             onClick={onSpin}
             variant="contained"
             size="large"
-            disabled={disabled || isSpinning}
+            disabled={!canSpin || disabled || isSpinning}
             startIcon={
               isSpinning ? <CircularProgress size={20} color="inherit" thickness={5} /> : null
             }
