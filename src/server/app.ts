@@ -228,10 +228,28 @@ export const createApp = () => {
         return
       }
       const prizes = await sheetsClient.listPrizes()
+      // Фильтруем призы в соответствии с выбранным уровнем так же, как на клиенте,
+      // чтобы выпадали только те сегменты, которые отображаются на колесе
+      const usablePrizes = prizes.filter(
+        (p: Prize) => p.active && !(p.removeAfterWin && p.removedFromWheel),
+      )
+      let eligiblePrizes = usablePrizes
+      if (level.level === 'advanced') {
+        eligiblePrizes = usablePrizes.filter((p: Prize) => p.rarity > 1)
+      } else if (level.level === 'epic') {
+        eligiblePrizes = usablePrizes.filter((p: Prize) => p.rarity > 2)
+      } else if (level.level === 'legendary') {
+        eligiblePrizes = usablePrizes.filter((p: Prize) => p.rarity > 3)
+      }
+      if (eligiblePrizes.length === 0) {
+        res.status(400).json({ error: 'NO_PRIZES_AVAILABLE' })
+        return
+      }
+
       const { result, nextUser, logEntry } = spinWheel({
         user,
         level,
-        prizes,
+        prizes: eligiblePrizes,
         seed: body.seed,
       })
       let updatedPrize = result.prize

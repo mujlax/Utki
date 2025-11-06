@@ -134,8 +134,21 @@ export const Wheel = ({
       return
     }
 
-    const index = segments.findIndex((segment) => segment.prize?.prizeId === targetPrizeId)
+    // Сначала ищем приз в segments (отфильтрованных для текущего уровня)
+    let index = segments.findIndex((segment) => segment.prize?.prizeId === targetPrizeId)
+    
+    // Если не нашли в segments, ищем во всех weightedPrizes (включая отфильтрованные)
     if (index === -1) {
+      const allIndex = weightedPrizes.findIndex(({ prize }) => prize.prizeId === targetPrizeId)
+      if (allIndex !== -1) {
+        // Нашли приз в общем списке, но его нет в segments из-за фильтрации
+        // Используем индекс 0 как fallback, чтобы колесо все равно крутилось
+        index = 0
+      }
+    }
+    
+    if (index === -1) {
+      // Приз действительно не найден нигде - пропускаем анимацию
       onSpinComplete?.()
       return
     }
@@ -146,11 +159,21 @@ export const Wheel = ({
     setDetectedPrize(null)
     setMustStartSpinning(true)
     onSpinStart?.()
-  }, [targetPrizeId, segments, mustStartSpinning, onSpinComplete, onSpinStart])
+  }, [targetPrizeId, segments, weightedPrizes, mustStartSpinning, onSpinComplete, onSpinStart])
 
   const handleStopSpinning = () => {
     setMustStartSpinning(false)
-    const prize = segments[currentPrizeIndex]?.prize ?? null
+    // Сначала пытаемся найти приз в segments по индексу
+    let prize = segments[currentPrizeIndex]?.prize ?? null
+    
+    // Если не нашли, ищем приз по targetPrizeId во всех weightedPrizes
+    if (!prize && inFlightTargetRef.current) {
+      const foundPrize = weightedPrizes.find(({ prize: p }) => p.prizeId === inFlightTargetRef.current)
+      if (foundPrize) {
+        prize = foundPrize.prize
+      }
+    }
+    
     setDetectedPrize(prize)
 
     const targetId = inFlightTargetRef.current

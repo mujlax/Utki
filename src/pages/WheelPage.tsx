@@ -356,7 +356,6 @@ const WheelPage = () => {
         ) : user ? (
           <Stack spacing={4}>
             <BalanceCard user={user} />
-            <DuckHistory userId={user.userId} />
             <Stack
               direction={{ xs: 'column', lg: 'row' }}
               spacing={3}
@@ -441,6 +440,7 @@ const WheelPage = () => {
                 }
               />
             ) : null}
+            <DuckHistory userId={user.userId} />
           </Stack>
         ) : (
           <Alert severity="error">
